@@ -99,6 +99,21 @@ const unionBB = (a, b) => !a ? b : !b ? a : { x0: Math.min(a.x0, b.x0), y0: Math
 J.splitLines = (text, maxPer) => {
   const arr = [...text];
   if (arr.length <= maxPer) return text;
+  // space-separated (English etc.) text wraps only at spaces — never inside a word ("brighter" → "brig / hter");
+  // a word longer than a line keeps a line of its own (a single English word is never split; the layout shrinks it)
+  if (/^[A-Za-z\u00c0-\u024f'\u2019-]+$/.test(text.trim())) return text;
+  if (/[A-Za-z]/.test(text) && /\s/.test(text.trim())) {
+    const words = text.trim().split(/\s+/);
+    const nLines = Math.min(words.length, Math.ceil(arr.length / maxPer));
+    const per = arr.length / nLines, lines = [];
+    let cur = '';
+    for (const w of words) {
+      const cand = cur ? cur + ' ' + w : w;
+      if (cur && lines.length < nLines - 1 && [...cand].length > per + 1) { lines.push(cur); cur = w; } else cur = cand;
+    }
+    lines.push(cur);
+    return lines.join('\n');
+  }
   const nLines = Math.ceil(arr.length / maxPer);
   const per = arr.length / nLines;
   const out = []; let start = 0;
